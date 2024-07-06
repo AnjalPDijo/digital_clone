@@ -1,0 +1,14 @@
+{
+    "likes": [
+        "chocolate",
+        "biri",
+        "toblerone"
+    ],
+    "dislikes": [
+        "Rain",
+        "snake"
+    ],
+    "behaviors": {
+        "Morning Routine": "Likes to have coffee and read news"
+    }
+}
