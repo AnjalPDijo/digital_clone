@@ -4,9 +4,132 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Digital Clone</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-    <h1>Welcome to the Digital Clone API</h1>
-    <p>Use this interface to interact with your digital clone.</p>
+    <div class="container">
+        <h1 class="mt-4">Welcome to the Digital Clone API</h1>
+        <p>Use this interface to interact with your digital clone.</p>
+        <div class="mb-3">
+            <a href="{{ url_for('logout') }}" class="btn btn-danger">Logout</a>
+        </div>
+        
+        <div class="mt-4">
+            <h2>Likes</h2>
+            <ul id="likes-list" class="list-group"></ul>
+            <form id="like-form" class="form-inline">
+                <input type="text" id="like-input" class="form-control mr-2" placeholder="Enter a like" required>
+                <button type="submit" class="btn btn-primary">Add Like</button>
+            </form>
+        </div>
+
+        <div class="mt-4">
+            <h2>Dislikes</h2>
+            <ul id="dislikes-list" class="list-group"></ul>
+            <form id="dislike-form" class="form-inline">
+                <input type="text" id="dislike-input" class="form-control mr-2" placeholder="Enter a dislike" required>
+                <button type="submit" class="btn btn-primary">Add Dislike</button>
+            </form>
+        </div>
+
+        <div class="mt-4">
+            <h2>Behaviors</h2>
+            <ul id="behaviors-list" class="list-group"></ul>
+            <form id="behavior-form" class="form-inline">
+                <input type="text" id="behavior-input" class="form-control mr-2" placeholder="Enter a behavior" required>
+                <input type="text" id="description-input" class="form-control mr-2" placeholder="Enter a description" required>
+                <button type="submit" class="btn btn-primary">Add Behavior</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            fetchLikes();
+            fetchDislikes();
+            fetchBehaviors();
+
+            // Fetch Likes
+            function fetchLikes() {
+                $.get('/likes', function(data) {
+                    $('#likes-list').empty();
+                    data.likes.forEach(function(like) {
+                        $('#likes-list').append('<li class="list-group-item">' + like + '</li>');
+                    });
+                });
+            }
+
+            // Fetch Dislikes
+            function fetchDislikes() {
+                $.get('/dislikes', function(data) {
+                    $('#dislikes-list').empty();
+                    data.dislikes.forEach(function(dislike) {
+                        $('#dislikes-list').append('<li class="list-group-item">' + dislike + '</li>');
+                    });
+                });
+            }
+
+            // Fetch Behaviors
+            function fetchBehaviors() {
+                $.get('/behaviors', function(data) {
+                    $('#behaviors-list').empty();
+                    $.each(data.behaviors, function(behavior, description) {
+                        $('#behaviors-list').append('<li class="list-group-item"><strong>' + behavior + ':</strong> ' + description + '</li>');
+                    });
+                });
+            }
+
+            // Add Like
+            $('#like-form').submit(function(event) {
+                event.preventDefault();
+                var like = $('#like-input').val();
+                $.ajax({
+                    url: '/likes',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ item: like }),
+                    success: function(response) {
+                        $('#like-input').val('');
+                        fetchLikes();
+                    }
+                });
+            });
+
+            // Add Dislike
+            $('#dislike-form').submit(function(event) {
+                event.preventDefault();
+                var dislike = $('#dislike-input').val();
+                $.ajax({
+                    url: '/dislikes',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ item: dislike }),
+                    success: function(response) {
+                        $('#dislike-input').val('');
+                        fetchDislikes();
+                    }
+                });
+            });
+
+            // Add Behavior
+            $('#behavior-form').submit(function(event) {
+                event.preventDefault();
+                var behavior = $('#behavior-input').val();
+                var description = $('#description-input').val();
+                $.ajax({
+                    url: '/behaviors',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ behavior: behavior, description: description }),
+                    success: function(response) {
+                        $('#behavior-input').val('');
+                        $('#description-input').val('');
+                        fetchBehaviors();
+                    }
+                });
+            });
+        });
+    </script>
 </body>
 </html>

@@ -1,17 +1,16 @@
-from flask import Flask, request, jsonify, render_template
-from main import DigitalClone
-from waitress import serve
-import os
+from flask import Flask, request, jsonify, render_template, redirect, url_for, flash
+from flask_login import login_user, login_required, logout_user, current_user
+from main import app, db, User, load_user, DigitalClone
 
-app = Flask(__name__)
-#app = Flask(__name__, template_folder='temp')
 clone = DigitalClone()
 
-@app.route('/')
-def home():
+@app.route('/home')
+@login_required
+def web_app_home():
     return render_template('index.html')
 
 @app.route('/likes', methods=['GET', 'POST', 'DELETE'])
+@login_required
 def manage_likes():
     if request.method == 'POST':
         item = request.json.get('item')
@@ -24,6 +23,7 @@ def manage_likes():
     return jsonify({"likes": clone.get_data()['likes']}), 200
 
 @app.route('/dislikes', methods=['GET', 'POST', 'DELETE'])
+@login_required
 def manage_dislikes():
     if request.method == 'POST':
         item = request.json.get('item')
@@ -36,6 +36,7 @@ def manage_dislikes():
     return jsonify({"dislikes": clone.get_data()['dislikes']}), 200
 
 @app.route('/behaviors', methods=['GET', 'POST', 'DELETE', 'PUT'])
+@login_required
 def manage_behaviors():
     if request.method == 'POST':
         behavior = request.json.get('behavior')
@@ -55,14 +56,3 @@ def manage_behaviors():
 
 if __name__ == '__main__':
     app.run(debug=True)
-
-
-# if __name__ == "__main__":
-#     serve(app, host='127.0.0.1', port=5000)
-
-
-# if __name__ == '__main__':
-#     if os.getenv('FLASK_ENV') == 'development':
-#         app.run(debug=True)
-#     else:
-#         serve(app, host='127.0.0.1', port=5000)

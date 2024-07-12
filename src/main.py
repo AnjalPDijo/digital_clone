@@ -52,8 +52,21 @@
 #     print(clone.get_data())
 
 
-import json
 import os
+import json
+from flask import Flask, request, jsonify, render_template, redirect, url_for, flash
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = os.urandom(24)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+db = SQLAlchemy(app)
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
 
 class DigitalClone:
     def __init__(self, data_file='data/clone_data.json'):
@@ -115,9 +128,7 @@ class DigitalClone:
         self.save_data()
 
     def save_data(self):
-        # Ensure the directory exists
         os.makedirs(os.path.dirname(self.data_file), exist_ok=True)
-        # Save data to the file
         data = {
             'likes': list(self.likes),
             'dislikes': list(self.dislikes),
@@ -134,7 +145,7 @@ class DigitalClone:
                 self.dislikes = set(data.get('dislikes', []))
                 self.behaviors = data.get('behaviors', {})
         else:
-            self.save_data()  # Create the file if it doesn't exist
+            self.save_data()
 
     def get_data(self):
         return {
@@ -143,121 +154,57 @@ class DigitalClone:
             'behaviors': self.behaviors
         }
 
-    def does_like(self, item):
-        item = item.lower()
-        return item in self.likes
 
-    def does_dislike(self, item):
-        item = item.lower()
-        return item in self.dislikes
 
-    def describe_behavior(self, behavior):
-        behavior = behavior.lower()
-        return self.behaviors.get(behavior, "No such behavior found.")
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(150), nullable=False)
 
-def main():
-    clone = DigitalClone()
-    while True:
-        print("\nCurrent Data:", clone.get_data())
-        print("1. Add Like")
-        print("2. Add Dislike")
-        print("3. Set Behavior")
-        print("4. Ask About Likes")
-        print("5. Ask About Dislikes")
-        print("6. Ask About Behavior")
-        print("7. Remove Like")
-        print("8. Remove Dislike")
-        print("9. Remove Behavior")
-        print("10. Update Like")
-        print("11. Update Dislike")
-        print("12. Update Behavior")
-        print("13. List All Likes")
-        print("14. List All Dislikes")
-        print("15. List All Behaviors")
-        print("16. Search Likes")
-        print("17. Search Dislikes")
-        print("18. Search Behaviors")
-        print("19. Exit")
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
-        choice = input("Enter choice: ")
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        user = User(username=username, password=password)
+        db.session.add(user)
+        db.session.commit()
+        login_user(user)
+        return redirect(url_for('home'))
+    return render_template('register.html')
 
-        if choice == '1':
-            item = input("Enter something you like: ")
-            clone.add_like(item)
-        elif choice == '2':
-            item = input("Enter something you dislike: ")
-            clone.add_dislike(item)
-        elif choice == '3':
-            behavior = input("Enter behavior: ")
-            description = input("Enter description: ")
-            clone.set_behavior(behavior, description)
-        elif choice == '4':
-            item = input("Ask if clone likes something: ")
-            if clone.does_like(item):
-                print(f"Yes, the clone likes {item}.")
-            else:
-                print(f"No, the clone doesn't like {item}.")
-        elif choice == '5':
-            item = input("Ask if clone dislikes something: ")
-            if clone.does_dislike(item):
-                print(f"Yes, the clone dislikes {item}.")
-            else:
-                print(f"No, the clone doesn't dislike {item}.")
-        elif choice == '6':
-            behavior = input("Ask about a behavior: ")
-            print(clone.describe_behavior(behavior))
-        elif choice == '7':
-            item = input("Enter something you want to remove from likes: ")
-            clone.remove_like(item)
-        elif choice == '8':
-            item = input("Enter something you want to remove from dislikes: ")
-            clone.remove_dislike(item)
-        elif choice == '9':
-            behavior = input("Enter the behavior you want to remove: ")
-            clone.remove_behavior(behavior)
-        elif choice == '10':
-            old_item = input("Enter the like you want to update: ")
-            new_item = input("Enter the new like: ")
-            clone.update_like(old_item, new_item)
-        elif choice == '11':
-            old_item = input("Enter the dislike you want to update: ")
-            new_item = input("Enter the new dislike: ")
-            clone.update_dislike(old_item, new_item)
-        elif choice == '12':
-            behavior = input("Enter the behavior you want to update: ")
-            new_description = input("Enter the new description: ")
-            clone.update_behavior(behavior, new_description)
-        elif choice == '13':
-            print("Likes:", clone.likes)
-        elif choice == '14':
-            print("Dislikes:", clone.dislikes)
-        elif choice == '15':
-            print("Behaviors:", clone.behaviors)
-        elif choice == '16':
-            item = input("Enter the like to search: ")
-            if clone.does_like(item):
-                print(f"{item} is in likes.")
-            else:
-                print(f"{item} is not in likes.")
-        elif choice == '17':
-            item = input("Enter the dislike to search: ")
-            if clone.does_dislike(item):
-                print(f"{item} is in dislikes.")
-            else:
-                print(f"{item} is not in dislikes.")
-        elif choice == '18':
-            behavior = input("Enter the behavior to search: ")
-            if behavior in clone.behaviors:
-                print(f"{behavior}: {clone.behaviors[behavior]}")
-            else:
-                print(f"No behavior found for {behavior}.")
-        elif choice == '19':
-            print("Exiting...")
-            break
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        user = User.query.filter_by(username=username).first()
+        if user and user.password == password:
+            login_user(user)
+            return redirect(url_for('home'))
         else:
-            print("Invalid choice. Please try again.")
+            flash('Login Unsuccessful. Please check username and password', 'danger')
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+@app.route('/')
+@login_required
+def home():
+    return render_template('index.html')
+
+if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()  # Create all database tables based on defined models
+    app.run(debug=True)
 
 
-if __name__ == "__main__":
-    main()
 
