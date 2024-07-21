@@ -50,37 +50,39 @@
             fetchDislikes();
             fetchBehaviors();
 
-            // Fetch Likes
             function fetchLikes() {
                 $.get('/likes', function(data) {
                     $('#likes-list').empty();
-                    data.likes.forEach(function(like) {
-                        $('#likes-list').append('<li class="list-group-item">' + like + '</li>');
+                    data.likes.forEach(function(like, index) {
+                        $('#likes-list').append('<li class="list-group-item">' + like + 
+                            ' <button class="btn btn-sm btn-danger" onclick="deleteLike(' + index + ')">Delete</button>' +
+                            ' <button class="btn btn-sm btn-info" onclick="updateLike(' + index + ')">Update</button></li>');
                     });
                 });
             }
 
-            // Fetch Dislikes
             function fetchDislikes() {
                 $.get('/dislikes', function(data) {
                     $('#dislikes-list').empty();
-                    data.dislikes.forEach(function(dislike) {
-                        $('#dislikes-list').append('<li class="list-group-item">' + dislike + '</li>');
+                    data.dislikes.forEach(function(dislike, index) {
+                        $('#dislikes-list').append('<li class="list-group-item">' + dislike + 
+                            ' <button class="btn btn-sm btn-danger" onclick="deleteDislike(' + index + ')">Delete</button>' +
+                            ' <button class="btn btn-sm btn-info" onclick="updateDislike(' + index + ')">Update</button></li>');
                     });
                 });
             }
 
-            // Fetch Behaviors
             function fetchBehaviors() {
                 $.get('/behaviors', function(data) {
                     $('#behaviors-list').empty();
                     $.each(data.behaviors, function(behavior, description) {
-                        $('#behaviors-list').append('<li class="list-group-item"><strong>' + behavior + ':</strong> ' + description + '</li>');
+                        $('#behaviors-list').append('<li class="list-group-item"><strong>' + behavior + ':</strong> ' + description + 
+                            ' <button class="btn btn-sm btn-danger" onclick="deleteBehavior(\'' + behavior + '\')">Delete</button>' +
+                            ' <button class="btn btn-sm btn-info" onclick="updateBehavior(\'' + behavior + '\')">Update</button></li>');
                     });
                 });
             }
 
-            // Add Like
             $('#like-form').submit(function(event) {
                 event.preventDefault();
                 var like = $('#like-input').val();
@@ -96,7 +98,6 @@
                 });
             });
 
-            // Add Dislike
             $('#dislike-form').submit(function(event) {
                 event.preventDefault();
                 var dislike = $('#dislike-input').val();
@@ -112,7 +113,6 @@
                 });
             });
 
-            // Add Behavior
             $('#behavior-form').submit(function(event) {
                 event.preventDefault();
                 var behavior = $('#behavior-input').val();
@@ -129,6 +129,82 @@
                     }
                 });
             });
+
+            window.deleteLike = function(index) {
+                $.ajax({
+                    url: '/likes/' + index,
+                    method: 'DELETE',
+                    success: function(response) {
+                        fetchLikes();
+                    }
+                });
+            };
+
+            window.updateLike = function(index) {
+                var newLike = prompt("Enter new like:");
+                if (newLike) {
+                    $.ajax({
+                        url: '/likes/' + index,
+                        method: 'PUT',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ item: newLike }),
+                        success: function(response) {
+                            fetchLikes();
+                        }
+                    });
+                }
+            };
+
+            window.deleteDislike = function(index) {
+                $.ajax({
+                    url: '/dislikes/' + index,
+                    method: 'DELETE',
+                    success: function(response) {
+                        fetchDislikes();
+                    }
+                });
+            };
+
+            window.updateDislike = function(index) {
+                var newDislike = prompt("Enter new dislike:");
+                if (newDislike) {
+                    $.ajax({
+                        url: '/dislikes/' + index,
+                        method: 'PUT',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ item: newDislike }),
+                        success: function(response) {
+                            fetchDislikes();
+                        }
+                    });
+                }
+            };
+
+            window.deleteBehavior = function(behavior) {
+                $.ajax({
+                    url: '/behaviors/' + behavior,
+                    method: 'DELETE',
+                    success: function(response) {
+                        fetchBehaviors();
+                    }
+                });
+            };
+
+            window.updateBehavior = function(behavior) {
+                var newBehavior = prompt("Enter new behavior:");
+                var newDescription = prompt("Enter new description:");
+                if (newBehavior && newDescription) {
+                    $.ajax({
+                        url: '/behaviors/' + behavior,
+                        method: 'PUT',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ behavior: newBehavior, description: newDescription }),
+                        success: function(response) {
+                            fetchBehaviors();
+                        }
+                    });
+                }
+            };
         });
     </script>
 </body>

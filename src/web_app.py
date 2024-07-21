@@ -1,58 +1,110 @@
-from flask import Flask, request, jsonify, render_template, redirect, url_for, flash
-from flask_login import login_user, login_required, logout_user, current_user
-from main import app, db, User, load_user, DigitalClone
+from flask import request, jsonify, redirect, url_for
+from flask_login import login_required, current_user
+from main import app, db, Likes, Dislike, Behavior  # Ensure correct imports
 
-clone = DigitalClone()
-
-@app.route('/home')
-@login_required
-def web_app_home():
-    return render_template('index.html')
-
-@app.route('/likes', methods=['GET', 'POST', 'DELETE'])
+@app.route('/likes', methods=['GET', 'POST'])
 @login_required
 def manage_likes():
     if request.method == 'POST':
         item = request.json.get('item')
-        clone.add_like(item)
+        like = Likes(item=item, user_id=current_user.id)
+        db.session.add(like)
+        db.session.commit()
         return jsonify({"message": f"Added like: {item}"}), 201
-    elif request.method == 'DELETE':
-        item = request.json.get('item')
-        clone.remove_like(item)
-        return jsonify({"message": f"Removed like: {item}"}), 200
-    return jsonify({"likes": clone.get_data()['likes']}), 200
 
-@app.route('/dislikes', methods=['GET', 'POST', 'DELETE'])
+    likes = [like.item for like in current_user.likes]
+    return jsonify({"likes": likes}), 200
+
+@app.route('/likes/<int:index>', methods=['DELETE', 'PUT'])
+@login_required
+def modify_likes(index):
+    likes = current_user.likes
+    if index >= len(likes):
+        return jsonify({"message": "Like not found"}), 404
+
+    like = likes[index]
+
+    if request.method == 'DELETE':
+        db.session.delete(like)
+        db.session.commit()
+        return jsonify({"message": f"Removed like: {like.item}"}), 200
+
+    if request.method == 'PUT':
+        new_item = request.json.get('item')
+        like.item = new_item
+        db.session.commit()
+        return jsonify({"message": f"Updated like to: {new_item}"}), 200
+
+    return jsonify({"message": "Invalid request"}), 400
+
+@app.route('/dislikes', methods=['GET', 'POST'])
 @login_required
 def manage_dislikes():
     if request.method == 'POST':
         item = request.json.get('item')
-        clone.add_dislike(item)
+        dislike = Dislike(item=item, user_id=current_user.id)
+        db.session.add(dislike)
+        db.session.commit()
         return jsonify({"message": f"Added dislike: {item}"}), 201
-    elif request.method == 'DELETE':
-        item = request.json.get('item')
-        clone.remove_dislike(item)
-        return jsonify({"message": f"Removed dislike: {item}"}), 200
-    return jsonify({"dislikes": clone.get_data()['dislikes']}), 200
 
-@app.route('/behaviors', methods=['GET', 'POST', 'DELETE', 'PUT'])
+    dislikes = [dislike.item for dislike in current_user.dislikes]
+    return jsonify({"dislikes": dislikes}), 200
+
+@app.route('/dislikes/<int:index>', methods=['DELETE', 'PUT'])
+@login_required
+def modify_dislikes(index):
+    dislikes = current_user.dislikes
+    if index >= len(dislikes):
+        return jsonify({"message": "Dislike not found"}), 404
+
+    dislike = dislikes[index]
+
+    if request.method == 'DELETE':
+        db.session.delete(dislike)
+        db.session.commit()
+        return jsonify({"message": f"Removed dislike: {dislike.item}"}), 200
+
+    if request.method == 'PUT':
+        new_item = request.json.get('item')
+        dislike.item = new_item
+        db.session.commit()
+        return jsonify({"message": f"Updated dislike to: {new_item}"}), 200
+
+    return jsonify({"message": "Invalid request"}), 400
+
+@app.route('/behaviors', methods=['GET', 'POST'])
 @login_required
 def manage_behaviors():
     if request.method == 'POST':
         behavior = request.json.get('behavior')
         description = request.json.get('description')
-        clone.set_behavior(behavior, description)
+        new_behavior = Behavior(behavior=behavior, description=description, user_id=current_user.id)
+        db.session.add(new_behavior)
+        db.session.commit()
         return jsonify({"message": f"Set behavior: {behavior}"}), 201
-    elif request.method == 'PUT':
-        behavior = request.json.get('behavior')
-        description = request.json.get('description')
-        clone.update_behavior(behavior, description)
-        return jsonify({"message": f"Updated behavior: {behavior}"}), 200
-    elif request.method == 'DELETE':
-        behavior = request.json.get('behavior')
-        clone.remove_behavior(behavior)
+
+    behaviors = {behavior.behavior: behavior.description for behavior in current_user.behaviors}
+    return jsonify({"behaviors": behaviors}), 200
+
+@app.route('/behaviors/<string:behavior>', methods=['DELETE', 'PUT'])
+@login_required
+def modify_behaviors(behavior):
+    behavior_entry = Behavior.query.filter_by(behavior=behavior, user_id=current_user.id).first()
+    if not behavior_entry:
+        return jsonify({"message": "Behavior not found"}), 404
+
+    if request.method == 'DELETE':
+        db.session.delete(behavior_entry)
+        db.session.commit()
         return jsonify({"message": f"Removed behavior: {behavior}"}), 200
-    return jsonify({"behaviors": clone.get_data()['behaviors']}), 200
+
+    if request.method == 'PUT':
+        new_description = request.json.get('description')
+        behavior_entry.description = new_description
+        db.session.commit()
+        return jsonify({"message": f"Updated behavior description to: {new_description}"}), 200
+
+    return jsonify({"message": "Invalid request"}), 400
 
 if __name__ == '__main__':
     app.run(debug=True)

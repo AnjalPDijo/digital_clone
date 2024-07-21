@@ -1,14 +1,16 @@
 {
     "likes": [
         "biri",
+        "galaxy",
         "toblerone",
         "pizza",
-        "galaxy",
+        "paris",
+        "iceland",
         "chocolate"
     ],
     "dislikes": [
-        "snake",
-        "Rain"
+        "Rain",
+        "snake"
     ],
     "behaviors": {
         "Morning Routine": "Likes to have coffee and read news"
